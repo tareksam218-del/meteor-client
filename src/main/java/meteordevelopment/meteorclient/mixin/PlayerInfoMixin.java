@@ -7,10 +7,9 @@ package meteordevelopment.meteorclient.mixin;
 
 import com.mojang.authlib.GameProfile;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import meteordevelopment.meteorclient.systems.modules.player.NameProtect;
+import meteordevelopment.meteorclient.systems.modules.player.SkinProtect;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
-import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.world.entity.player.PlayerSkin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -24,11 +23,15 @@ public abstract class PlayerInfoMixin {
     public abstract GameProfile getProfile();
 
     @Inject(method = "getSkin", at = @At("HEAD"), cancellable = true)
-    private void onGetTexture(CallbackInfoReturnable<PlayerSkin> cir) {
-        if (getProfile().name().equals(Minecraft.getInstance().getUser().getName())) {
-            if (Modules.get().get(NameProtect.class).skinProtect()) {
-                cir.setReturnValue(DefaultPlayerSkin.get(getProfile()));
-            }
-        }
+    private void onGetSkin(CallbackInfoReturnable<PlayerSkin> cir) {
+        SkinProtect module = Modules.get().get(SkinProtect.class);
+        if (module == null) return;
+
+        boolean isLocalPlayer = getProfile().getName().equals(
+            Minecraft.getInstance().getUser().getName()
+        );
+
+        PlayerSkin override = module.getSkin(getProfile().getName(), isLocalPlayer);
+        if (override != null) cir.setReturnValue(override);
     }
 }
